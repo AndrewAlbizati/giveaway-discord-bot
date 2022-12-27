@@ -1,0 +1,21 @@
+# Gradle/Java files
+/out/
+.gradle
+/build/
+*.iml
+
+# Bot files
+*.jar
+giveaways
+
+# macOS files
+*.DS_Store
+
+# IntelliJ files
+/.idea/
+
+# Raspberry Pi files
+/bin/
+.project
+org.eclipse.buildship.core.prefs
+.classpath
