@@ -49,16 +49,18 @@ public class GiveawayCommandHandler implements SlashCommandCreateListener {
         String title = interaction.getArgumentStringRepresentationValueByName("PRIZE").get();
 
 
-        long timestamp = interaction.getArgumentLongValueByName("TIME").orElse(System.currentTimeMillis()/1000 + 86400);
-        // Return error message if a timestamp from the past is provided
-        if (timestamp < System.currentTimeMillis()/1000) {
-            EmbedBuilder errorBuilder = createErrorEmbed(new IllegalArgumentException("Please provide a timestamp in the future."));
+        String unformattedTimestamp = interaction.getArgumentStringRepresentationValueByName("TIME").orElse("1d");
+        // Return error message if a timestamp from the past is provided or is invalid
+        if (parseTimestampInput(unformattedTimestamp) == -1L) {
+            EmbedBuilder errorBuilder = createErrorEmbed(new IllegalArgumentException("Please provide a valid timestamp in the future."));
             interaction.createImmediateResponder()
                     .addEmbed(errorBuilder)
                     .setFlags(MessageFlag.EPHEMERAL)
                     .respond();
             return;
         }
+
+        long timestamp = parseTimestampInput(unformattedTimestamp);
 
 
         long winnersCount = interaction.getArgumentLongValueByName("WINNERS").orElse(1L);
@@ -73,14 +75,12 @@ public class GiveawayCommandHandler implements SlashCommandCreateListener {
         }
 
 
-        boolean announceWinner = interaction.getArgumentBooleanValueByName("ANNOUNCE").orElse(true);
-
         try {
             Message message = interaction.createImmediateResponder()
                     .addComponents(ActionRow.of(Button.primary("signup", "🎉")))
                     .respond().get().update().get();
 
-            Giveaway giveaway = new Giveaway(title, System.currentTimeMillis()/1000, timestamp, winnersCount, announceWinner, message, interaction.getUser());
+            Giveaway giveaway = new Giveaway(title, System.currentTimeMillis()/1000, timestamp, winnersCount, message, interaction.getUser());
             giveaway.updateMessage();
             giveaway.saveToFile();
             bot.addGiveaway(message.getId(), giveaway);
@@ -90,6 +90,44 @@ public class GiveawayCommandHandler implements SlashCommandCreateListener {
                     .addEmbed(errorBuilder)
                     .setFlags(MessageFlag.EPHEMERAL)
                     .respond();
+        }
+    }
+
+    private long parseTimestampInput(String input) {
+        try {
+            long time = System.currentTimeMillis()/1000;
+            for (String val : input.split(" ")) {
+                int amount = Integer.parseInt(val.substring(0, 1));
+                String type = val.substring(1, 2);
+
+                switch (type.toLowerCase()) {
+                    case "y":
+                        time += 31536000L * amount;
+                        break;
+                    case "n":
+                        time += 2628288L * amount;
+                        break;
+                    case "d":
+                        time += 86400L * amount;
+                        break;
+                    case "h":
+                        time += 3600L * amount;
+                        break;
+                    case "m":
+                        time += 60L * amount;
+                    case "s":
+                        time += amount;
+                        break;
+
+                    default:
+                        throw new IllegalArgumentException();
+                }
+            }
+
+            return time;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return -1L;
         }
     }
 

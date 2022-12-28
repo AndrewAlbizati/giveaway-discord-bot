@@ -2,6 +2,7 @@ package com.github.AndrewAlbizati.events;
 
 import com.github.AndrewAlbizati.Bot;
 import com.github.AndrewAlbizati.Giveaway;
+import org.javacord.api.entity.message.MessageFlag;
 import org.javacord.api.event.interaction.MessageComponentCreateEvent;
 import org.javacord.api.interaction.MessageComponentInteraction;
 import org.javacord.api.listener.interaction.MessageComponentCreateListener;
@@ -40,7 +41,7 @@ public class LeaveButtonPress implements MessageComponentCreateListener {
         Giveaway giveaway = bot.getGiveaway(messageId);
 
         // Ignore if the user hasn't entered the giveaway
-        if (!giveaway.contains(userId)) {
+        if (!giveaway.getUsers().contains(userId)) {
             return;
         }
         giveaway.removeUser(userId);
@@ -49,15 +50,16 @@ public class LeaveButtonPress implements MessageComponentCreateListener {
         if (giveaway.saveToFile()) {
             // Save to file was successful
             giveaway.updateMessage();
-            /*messageComponentInteraction.getMessage().createUpdater()
-                            .setContent("Successfully left giveaway!")
-                            .removeAllComponents()
-                    .applyChanges();*/
+            messageComponentInteraction.createFollowupMessageBuilder()
+                    .setContent("Successfully left the **" + giveaway.getPrize() + "** giveaway!")
+                    .setFlags(MessageFlag.EPHEMERAL)
+                    .send();
         } else {
             // Save to file was unsuccessful
-            messageComponentInteraction.getMessage().createUpdater()
-                    .setContent("Error leaving giveaway! Try again.")
-                    .applyChanges();
+            messageComponentInteraction.createFollowupMessageBuilder()
+                    .setContent("Error leaving the **" + giveaway.getPrize() + "** giveaway! Try again.")
+                    .setFlags(MessageFlag.EPHEMERAL)
+                    .send();
         }
     }
 }

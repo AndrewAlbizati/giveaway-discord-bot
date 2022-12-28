@@ -42,7 +42,7 @@ public class JoinButtonPress implements MessageComponentCreateListener {
         Giveaway giveaway = bot.getGiveaway(messageId);
 
         // Ignore if the user has already been entered
-        if (giveaway.contains(userId)) {
+        if (giveaway.getUsers().contains(userId)) {
             return;
         }
         giveaway.addUser(userId);
@@ -52,14 +52,14 @@ public class JoinButtonPress implements MessageComponentCreateListener {
             // Save to file was successful
             giveaway.updateMessage();
             messageComponentInteraction.createFollowupMessageBuilder()
-                    .setContent("You've been entered in the giveaway!")
+                    .setContent("You've been entered in the **" + giveaway.getPrize() + "** giveaway! Press the 💥 button to leave.")
                     .addComponents(ActionRow.of(Button.primary("leave-" + giveaway.getMessage().getId(), "💥")))
                     .setFlags(MessageFlag.EPHEMERAL)
                     .send();
         } else {
             // Save to file was unsuccessful
             messageComponentInteraction.createFollowupMessageBuilder()
-                    .setContent("Error entering giveaway! Please try again.")
+                    .setContent("Error entering the **" + giveaway.getPrize() + "** giveaway! Please try again.")
                     .setFlags(MessageFlag.EPHEMERAL)
                     .send();
         }

@@ -11,6 +11,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.List;
 
 public class Giveaway {
     private final ArrayList<Long> users;
@@ -18,18 +19,16 @@ public class Giveaway {
     private final long createTimestamp;
     private final long endTimestamp;
     private final long winnersCount;
-    private final boolean announceWinner;
     private final Message message;
     private final TextChannel textChannel;
     private final User creator;
 
-    public Giveaway(String prize, long createTimestamp, long endTimestamp, long winnersCount, boolean announceWinner, Message message, User creator) {
+    public Giveaway(String prize, long createTimestamp, long endTimestamp, long winnersCount, Message message, User creator) {
         users = new ArrayList<>();
         this.prize = prize;
         this.createTimestamp = createTimestamp;
         this.endTimestamp = endTimestamp;
         this.winnersCount = winnersCount;
-        this.announceWinner = announceWinner;
         this.message = message;
         this.textChannel = message.getChannel();
         this.creator = creator;
@@ -51,10 +50,6 @@ public class Giveaway {
         return winnersCount;
     }
 
-    public boolean getAnnounceWinner() {
-        return announceWinner;
-    }
-
     public Message getMessage() {
         return message;
     }
@@ -67,12 +62,12 @@ public class Giveaway {
         return creator;
     }
 
-    public void addUser(long user) {
-        users.add(user);
+    public List<Long> getUsers() {
+        return List.copyOf(users);
     }
 
-    public boolean contains(long user) {
-        return users.contains(user);
+    public void addUser(long user) {
+        users.add(user);
     }
 
     public void removeUser(long user) {
@@ -103,15 +98,56 @@ public class Giveaway {
                 .applyChanges();
     }
 
+    public void updateMessageWithWinners(long[] winners) {
+        EmbedBuilder eb = new EmbedBuilder();
+        eb.setTitle(prize);
+        eb.setTimestamp(Instant.ofEpochSecond(endTimestamp));
+        if (Math.min(winnersCount, users.size()) == 0) {
+            eb.setDescription("Ended: <t:" + endTimestamp + ":R> (<t:" + endTimestamp + ":f>)\nHosted by: " + creator.getMentionTag() + "\nEntries: **" + users.size() + "**\nWinners: **None** (0 entries)");
+
+            message.createUpdater()
+                    .removeAllEmbeds()
+                    .removeAllComponents()
+                    .addEmbed(eb)
+                    .applyChanges();
+            return;
+        }
+
+        // Create description formatted as:
+        /*
+        Free iPhone Giveaway
+
+        Ended: 2 days ago (December 25, 2022 10:00 PM)
+        Hosted by: @andrewalbizati
+        Entries: 22
+        Winners: @user1, @user2
+
+        12/25/2022 9:50 PM
+         */
+        StringBuilder winnersListStr = new StringBuilder();
+        for (int i = 0; i < winners.length; i++) {
+            winnersListStr.append("<@!" + winners[i] + ">");
+            if (i != winners.length - 1) {
+                winnersListStr.append(", ");
+            }
+        }
+        eb.setDescription("Ended: <t:" + endTimestamp + ":R> (<t:" + endTimestamp + ":f>)\nHosted by: " + creator.getMentionTag() + "\nEntries: **" + users.size() + "**\nWinners: " + winnersListStr);
+
+        message.createUpdater()
+                .removeAllEmbeds()
+                .removeAllComponents()
+                .addEmbed(eb)
+                .applyChanges();
+    }
+
     public boolean saveToFile() {
         JSONObject giveawayObject = new JSONObject();
         giveawayObject.put("prize", prize);
         giveawayObject.put("createTimestamp", createTimestamp);
         giveawayObject.put("endTimestamp", endTimestamp);
         giveawayObject.put("winnersCount", winnersCount);
-        giveawayObject.put("announceWinner", announceWinner);
-        giveawayObject.put("textChannelId", textChannel.getId());
         giveawayObject.put("creatorId", creator.getId());
+        giveawayObject.put("textChannelId", textChannel.getId());
         giveawayObject.put("users", users);
 
         try {
